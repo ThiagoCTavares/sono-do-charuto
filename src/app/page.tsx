@@ -905,8 +905,10 @@ export default function Home() {
 
   // Login / Cadastro
   const handleAuthSubmit = async (event: FormEvent) => {
+    console.log("🚀 Botão clicado! Modo:", authState.mode);
     event.preventDefault();
     if (!supabase) return;
+    console.log("🔌 Cliente Supabase:", !!supabase);
 
     if (!isValidEmail(authState.email)) {
       setAuthState((prev) => ({ ...prev, error: "E-mail inválido." }));
@@ -1115,7 +1117,9 @@ export default function Home() {
     setIsSaving(false);
   };
 
-  if (!isMounted) return null;
+  if (!isMounted) {
+    return <div className="min-h-screen bg-black" />;
+  }
 
   return (
     <div
