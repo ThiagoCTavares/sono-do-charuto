@@ -530,6 +530,7 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
   const [referenceDate] = useState(getReferenceDate);
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -626,6 +627,10 @@ export default function Home() {
     if (!grid) return;
     const hasMore = grid.scrollTop + grid.clientHeight < grid.scrollHeight - 2;
     setShowAppearanceScrollHint(hasMore);
+  }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
 
   useEffect(() => {
@@ -1109,6 +1114,8 @@ export default function Home() {
     setIsEditModalOpen(false);
     setIsSaving(false);
   };
+
+  if (!isMounted) return null;
 
   return (
     <div
