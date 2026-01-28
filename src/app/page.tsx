@@ -610,17 +610,34 @@ export default function Home() {
     error: null,
   });
 
-  const sleepingDuration = useMemo(() => {
+  const sleepingMetrics = useMemo(() => {
     if (sleepStatus !== "SLEEPING" || !activeSleepRecord?.hora_deitar) {
       return null;
     }
     const nowTime = formatTime(currentTime);
-    const calc = calculateSleepDuration(
+    return calculateSleepDuration(
       stripSeconds(activeSleepRecord.hora_deitar),
       nowTime,
     );
-    return calc ? formatDuration(calc.totalMinutes) : null;
   }, [activeSleepRecord?.hora_deitar, currentTime, sleepStatus]);
+
+  const sleepingDuration = useMemo(
+    () =>
+      sleepingMetrics ? formatDuration(sleepingMetrics.totalMinutes) : null,
+    [sleepingMetrics],
+  );
+
+  const sleepingMinutes = sleepingMetrics?.totalMinutes ?? null;
+  const shouldCancelSleep =
+    sleepStatus === "SLEEPING" &&
+    sleepingMinutes !== null &&
+    sleepingMinutes < 10;
+  const cancelRemainingMinutes =
+    sleepingMinutes !== null ? Math.max(0, 10 - sleepingMinutes) : null;
+  const cancelSleepLabel =
+    cancelRemainingMinutes !== null
+      ? `Cancelar (${cancelRemainingMinutes} min restantes)`
+      : "Cancelar";
 
   const avatarUrl = useMemo(
     () => buildAvatarUrl(nickname, avatarOptions),
@@ -1056,8 +1073,58 @@ export default function Home() {
     setIsSaving(false);
   };
 
+  const handleSleepCancel = async () => {
+    if (!session || !supabase) return;
+
+    setIsSaving(true);
+    setStatusMessage(null);
+
+    let recordId = activeSleepRecord?.id ?? null;
+
+    if (!recordId) {
+      const { data, error } = await supabase
+        .from("registros_sono")
+        .select("id, hora_deitar, hora_acordar, data_registro")
+        .eq("user_id", session.user.id)
+        .is("hora_acordar", null)
+        .order("data_registro", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data) {
+        setStatusMessage("Não foi possível localizar o registro em aberto.");
+        setIsSaving(false);
+        return;
+      }
+
+      recordId = data.id;
+    }
+
+    const { error } = await supabase
+      .from("registros_sono")
+      .delete()
+      .eq("id", recordId);
+
+    if (error) {
+      console.error(error);
+      setStatusMessage("Erro ao cancelar o sono.");
+      setIsSaving(false);
+      return;
+    }
+
+    setRegisteredSummary(null);
+    setActiveSleepRecord(null);
+    setSleepStatus("IDLE");
+    setSavedTick((t) => t + 1);
+    setIsSaving(false);
+  };
+
   const handleWakeUp = async () => {
     if (!session || !supabase) return;
+    if (shouldCancelSleep) {
+      await handleSleepCancel();
+      return;
+    }
 
     let recordId = activeSleepRecord?.id ?? null;
     let bedTime = activeSleepRecord?.hora_deitar ?? null;
@@ -1183,7 +1250,7 @@ export default function Home() {
   return (
     <div
       className={`min-h-screen text-slate-900 font-sans pb-10 transition-colors duration-700 ${
-        sleepStatus === "SLEEPING" ? "bg-[#282828]" : "bg-[#fafafa]"
+        sleepStatus === "SLEEPING" ? "bg-[#171717]" : "bg-[#fafafa]"
       }`}
     >
       <main className="mx-auto max-w-md px-4 pt-6">
@@ -1889,14 +1956,31 @@ export default function Home() {
                       <Button
                         type="button"
                         disabled={isSaving}
-                        onClick={sleepStatus === "SLEEPING" ? handleWakeUp : handleSleepStart}
+                        variant={
+                          sleepStatus === "SLEEPING" && shouldCancelSleep
+                            ? "outline"
+                            : "primary"
+                        }
+                        onClick={
+                          sleepStatus === "SLEEPING"
+                            ? shouldCancelSleep
+                              ? handleSleepCancel
+                              : handleWakeUp
+                            : handleSleepStart
+                        }
                         className={`mt-12 text-2xl font-bold tracking-wide ${
                           sleepStatus === "SLEEPING"
-                            ? "!bg-[#fafafa] !text-black hover:!bg-[#f0f0f0]"
+                            ? shouldCancelSleep
+                              ? "!border-red-300 !text-red-600 hover:!border-red-400"
+                              : "!bg-[#fafafa] !text-black hover:!bg-[#f0f0f0]"
                             : ""
                         }`}
                       >
-                        {sleepStatus === "SLEEPING" ? "ACORDAR" : "IR DORMIR"}
+                        {sleepStatus === "SLEEPING"
+                          ? shouldCancelSleep
+                            ? cancelSleepLabel
+                            : "Acordar"
+                          : "IR DORMIR"}
                       </Button>
                     </div>
                   ) : null}
