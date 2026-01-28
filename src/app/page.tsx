@@ -534,7 +534,6 @@ export default function Home() {
     },
     [],
   );
-  const CANCEL_THRESHOLD_MINUTES = 1;
   const [sleepStatus, setSleepStatus] = useState<"IDLE" | "SLEEPING" | "COMPLETED">(
     "IDLE"
   );
@@ -544,6 +543,7 @@ export default function Home() {
     hora_acordar: string | null;
     data_registro: string | null;
   } | null>(null);
+  const [sleepStartAt, setSleepStartAt] = useState<Date | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -629,17 +629,10 @@ export default function Home() {
   );
 
   const sleepingMinutes = sleepingMetrics?.totalMinutes ?? null;
-  const shouldCancelSleep =
+  const isSleepLocked =
     sleepStatus === "SLEEPING" &&
-    (sleepingMinutes ?? 0) <= CANCEL_THRESHOLD_MINUTES;
-  const cancelRemainingMinutes =
-    sleepingMinutes !== null
-      ? Math.max(0, CANCEL_THRESHOLD_MINUTES - sleepingMinutes)
-      : null;
-  const cancelSleepLabel =
-    cancelRemainingMinutes !== null
-      ? "CANCELAR (Modo Teste)"
-      : "CANCELAR";
+    sleepStartAt !== null &&
+    currentTime.getTime() - sleepStartAt.getTime() < 2 * 60 * 1000;
 
   const avatarUrl = useMemo(
     () => buildAvatarUrl(nickname, avatarOptions),
@@ -850,6 +843,7 @@ export default function Home() {
         setSleepStatus("IDLE");
         setRegisteredSummary(null);
         setActiveSleepRecord(null);
+        setSleepStartAt(null);
       }, 0);
       return () => window.clearTimeout(timer);
     }
@@ -872,6 +866,7 @@ export default function Home() {
         setSleepStatus("IDLE");
         setRegisteredSummary(null);
         setActiveSleepRecord(null);
+        setSleepStartAt(null);
         return;
       }
 
@@ -910,12 +905,14 @@ export default function Home() {
           data.hora_acordar,
         );
         setRegisteredSummary(summary);
+        setSleepStartAt(null);
         return;
       }
 
       setSleepStatus("IDLE");
       setRegisteredSummary(null);
       setActiveSleepRecord(data ?? null);
+      setSleepStartAt(null);
     };
 
     void checkLatest();
@@ -1041,6 +1038,7 @@ export default function Home() {
     setRegisteredSummary(null);
     setSleepStatus("IDLE");
     setActiveSleepRecord(null);
+    setSleepStartAt(null);
   };
 
   const handleSleepStart = async () => {
@@ -1070,63 +1068,14 @@ export default function Home() {
     if (data) {
       setActiveSleepRecord(data);
       setSleepStatus("SLEEPING");
+      setSleepStartAt(new Date());
       setSavedTick((t) => t + 1);
     }
     setIsSaving(false);
   };
 
-  const handleSleepCancel = async () => {
-    if (!session || !supabase) return;
-
-    setIsSaving(true);
-    setStatusMessage(null);
-
-    let recordId = activeSleepRecord?.id ?? null;
-
-    if (!recordId) {
-      const { data, error } = await supabase
-        .from("registros_sono")
-        .select("id, hora_deitar, hora_acordar, data_registro")
-        .eq("user_id", session.user.id)
-        .is("hora_acordar", null)
-        .order("data_registro", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error || !data) {
-        setStatusMessage("Não foi possível localizar o registro em aberto.");
-        setIsSaving(false);
-        return;
-      }
-
-      recordId = data.id;
-    }
-
-    const { error } = await supabase
-      .from("registros_sono")
-      .delete()
-      .eq("id", recordId);
-
-    if (error) {
-      console.error(error);
-      setStatusMessage("Erro ao cancelar o sono.");
-      setIsSaving(false);
-      return;
-    }
-
-    setRegisteredSummary(null);
-    setActiveSleepRecord(null);
-    setSleepStatus("IDLE");
-    setSavedTick((t) => t + 1);
-    setIsSaving(false);
-  };
-
   const handleWakeUp = async () => {
     if (!session || !supabase) return;
-    if (shouldCancelSleep) {
-      await handleSleepCancel();
-      return;
-    }
 
     let recordId = activeSleepRecord?.id ?? null;
     let bedTime = activeSleepRecord?.hora_deitar ?? null;
@@ -1198,6 +1147,7 @@ export default function Home() {
     setRegisteredSummary(calc);
     setActiveSleepRecord(data);
     setSleepStatus("COMPLETED");
+    setSleepStartAt(null);
     setSavedTick((t) => t + 1);
     setIsSaving(false);
   };
@@ -1957,30 +1907,18 @@ export default function Home() {
                       </div>
                       <Button
                         type="button"
-                        disabled={isSaving}
-                        variant={
-                          sleepStatus === "SLEEPING" && shouldCancelSleep
-                            ? "outline"
-                            : "primary"
-                        }
-                        onClick={
-                          sleepStatus === "SLEEPING"
-                            ? shouldCancelSleep
-                              ? handleSleepCancel
-                              : handleWakeUp
-                            : handleSleepStart
-                        }
+                        disabled={isSaving || isSleepLocked}
+                        variant="primary"
+                        onClick={sleepStatus === "SLEEPING" ? handleWakeUp : handleSleepStart}
                         className={`mt-12 text-2xl font-bold tracking-wide ${
                           sleepStatus === "SLEEPING"
-                            ? shouldCancelSleep
-                              ? "!border-red-300 !text-red-600 hover:!border-red-400"
-                              : "!bg-[#fafafa] !text-black hover:!bg-[#f0f0f0]"
+                            ? "!bg-[#fafafa] !text-black hover:!bg-[#f0f0f0]"
                             : ""
                         }`}
                       >
                         {sleepStatus === "SLEEPING"
-                          ? shouldCancelSleep
-                            ? cancelSleepLabel
+                          ? isSleepLocked
+                            ? "Durma bem!"
                             : "Acordar"
                           : "IR DORMIR"}
                       </Button>
