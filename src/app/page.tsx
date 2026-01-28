@@ -969,7 +969,6 @@ export default function Home() {
       .insert({
         user_id: session.user.id,
         hora_deitar: normalizedNow,
-        hora_acordar: null,
         duracao_total: 0,
         data_registro: referenceDate.iso,
       })
