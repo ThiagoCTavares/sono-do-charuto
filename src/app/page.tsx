@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Edit3, Home as HomeIcon, Trophy, UserCircle2, User, LogOut } from "lucide-react";
+import { Edit3, Home as HomeIcon, Trophy, User, LogOut } from "lucide-react";
 import Button from "@/components/ui/Button";
 import type { Session } from "@supabase/supabase-js";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -1260,16 +1260,15 @@ export default function Home() {
         </header>
 
         {!session ? (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-200"
+            className="space-y-6 px-2"
           >
-              <div className="mb-6 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">
-                  {authState.mode === "login" ? "Entre na liga" : "Nova Conta"}
-                </h2>
-              <UserCircle2 className="text-slate-900" size={28} />
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-slate-900">
+                {authState.mode === "login" ? "Login" : "Nova Conta"}
+              </h2>
             </div>
 
             <form onSubmit={handleAuthSubmit} className="space-y-4">
@@ -1278,7 +1277,7 @@ export default function Home() {
                 <input
                   type="email"
                   value={authState.email}
-                  onChange={(e) => setAuthState(prev => ({...prev, email: e.target.value}))}
+                  onChange={(e) => setAuthState(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-900 outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200 transition"
                   placeholder="piloto@exemplo.com"
                 />
