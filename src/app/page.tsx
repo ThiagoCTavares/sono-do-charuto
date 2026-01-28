@@ -534,6 +534,7 @@ export default function Home() {
     },
     [],
   );
+  const CANCEL_THRESHOLD_MINUTES = 1;
   const [sleepStatus, setSleepStatus] = useState<"IDLE" | "SLEEPING" | "COMPLETED">(
     "IDLE"
   );
@@ -631,13 +632,15 @@ export default function Home() {
   const shouldCancelSleep =
     sleepStatus === "SLEEPING" &&
     sleepingMinutes !== null &&
-    sleepingMinutes < 10;
+    sleepingMinutes < CANCEL_THRESHOLD_MINUTES;
   const cancelRemainingMinutes =
-    sleepingMinutes !== null ? Math.max(0, 10 - sleepingMinutes) : null;
+    sleepingMinutes !== null
+      ? Math.max(0, CANCEL_THRESHOLD_MINUTES - sleepingMinutes)
+      : null;
   const cancelSleepLabel =
     cancelRemainingMinutes !== null
-      ? `Cancelar (${cancelRemainingMinutes} min restantes)`
-      : "Cancelar";
+      ? "CANCELAR (Modo Teste)"
+      : "CANCELAR";
 
   const avatarUrl = useMemo(
     () => buildAvatarUrl(nickname, avatarOptions),
