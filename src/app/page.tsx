@@ -971,7 +971,7 @@ export default function Home() {
         hora_deitar: normalizedNow,
         duracao_total: 0,
         data_registro: referenceDate.iso,
-      })
+      } as any)
       .select("id, hora_deitar, hora_acordar, data_registro")
       .maybeSingle();
 
