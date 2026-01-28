@@ -1,0 +1,15 @@
+{
+  "name": "Sono do Charuto",
+  "short_name": "Sono do Charuto",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/Logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
