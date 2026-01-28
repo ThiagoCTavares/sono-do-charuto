@@ -631,8 +631,7 @@ export default function Home() {
   const sleepingMinutes = sleepingMetrics?.totalMinutes ?? null;
   const shouldCancelSleep =
     sleepStatus === "SLEEPING" &&
-    sleepingMinutes !== null &&
-    sleepingMinutes <= CANCEL_THRESHOLD_MINUTES;
+    (sleepingMinutes ?? 0) <= CANCEL_THRESHOLD_MINUTES;
   const cancelRemainingMinutes =
     sleepingMinutes !== null
       ? Math.max(0, CANCEL_THRESHOLD_MINUTES - sleepingMinutes)
