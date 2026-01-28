@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   description: "Sono do Charuto",
   manifest: "/manifest.json",
   themeColor: "#000000",
+  robots: {
+    index: false,
+    follow: false,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

@@ -374,6 +374,47 @@ const appearanceAnimateProps = (isActive: boolean) => ({
   y: 0,
 });
 
+const findKeyByValue = (
+  palette: Record<string, string>,
+  value: string | null,
+) => {
+  if (!value) return null;
+  const normalized = value.replace("#", "").toLowerCase();
+  return (
+    Object.keys(palette).find(
+      (key) => palette[key]?.toLowerCase() === normalized,
+    ) ?? null
+  );
+};
+
+const parseAvatarUrlToOptions = (url: string): Partial<AvatarOptions> => {
+  try {
+    const urlObj = new URL(url);
+    const params = urlObj.searchParams;
+
+    const rawHairColor = params.get("hairColor");
+    const rawFacialHairColor = params.get("facialHairColor");
+    const rawClotheColor = params.get("clothesColor");
+
+    return {
+      top: params.get("top") || "shortFlat",
+      eyes: params.get("eyes") || "default",
+      mouth: params.get("mouth") || "default",
+      facialHair: params.get("facialHair") || "none",
+      clothing: params.get("clothing") || "hoodie",
+      skinColor: params.get("skinColor") || "ffdbb4",
+      hairColor:
+        findKeyByValue(hairColorPalette, rawHairColor) || "brown",
+      facialHairColor:
+        findKeyByValue(hairColorPalette, rawFacialHairColor) || "brown",
+      clotheColor:
+        findKeyByValue(clotheColorPalette, rawClotheColor) || "blue01",
+      eyebrows: params.get("eyebrows") || "default",
+    };
+  } catch (error) {
+    return {};
+  }
+};
 
 const getSleepLabel = (totalMinutes: number) => {
   if (totalMinutes >= 8 * 60) return "Sono campeão";
@@ -823,6 +864,12 @@ export default function Home() {
           "";
 
         setNickname(resolvedName);
+        if (data?.avatar_url) {
+          const savedOptions = parseAvatarUrlToOptions(data.avatar_url);
+          if (Object.keys(savedOptions).length > 0) {
+            setAvatarOptions((prev) => ({ ...prev, ...savedOptions }));
+          }
+        }
         setNeedsProfileSetup(
           !data?.nome?.trim() || !data?.avatar_url?.trim(),
         );
@@ -1428,15 +1475,18 @@ export default function Home() {
 
                   <AnimatePresence mode="wait">
                     <div className="relative bg-[#fafafa]">
-                      <motion.div
-                        key={activeAvatarSection}
+                      <div
                         ref={appearanceGridRef}
                         onScroll={updateAppearanceScrollHint}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className="mt-6 grid w-full grid-cols-3 gap-2 max-h-40 overflow-y-auto overflow-x-hidden pr-1"
+                        className="mt-6 max-h-44 overflow-y-auto overflow-x-hidden pr-1 overscroll-contain touch-pan-y"
                       >
+                        <motion.div
+                          key={activeAvatarSection}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          className="grid w-full grid-cols-3 justify-items-center gap-2 pb-2"
+                        >
                       {activeAvatarSection === "hair" &&
                         [
                           "shortFlat",
@@ -1834,6 +1884,7 @@ export default function Home() {
                           );
                         })}
                       </motion.div>
+                      </div>
                       <div
                         className={`pointer-events-none absolute inset-x-0 -bottom-px h-8 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/90 to-transparent transition-opacity ${
                           showAppearanceScrollHint ? "opacity-100" : "opacity-0"
