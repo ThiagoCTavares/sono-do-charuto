@@ -657,8 +657,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!isEditModalOpen) return;
-    setEditBedTime(stripSeconds(activeSleepRecord?.hora_deitar));
-    setEditWakeTime(stripSeconds(activeSleepRecord?.hora_acordar));
+    setEditBedTime(stripSeconds(activeSleepRecord?.hora_deitar ?? null));
+    setEditWakeTime(stripSeconds(activeSleepRecord?.hora_acordar ?? null));
   }, [activeSleepRecord?.hora_acordar, activeSleepRecord?.hora_deitar, isEditModalOpen]);
 
   // Gerenciamento de Sessão
