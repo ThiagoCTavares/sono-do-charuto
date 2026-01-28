@@ -6,7 +6,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "outline" | "ghost";
 };
 
-const variantStyles: Record<ButtonProps["variant"], string> = {
+const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
     "w-full rounded-2xl bg-slate-900 px-6 py-4 font-bold text-white shadow-sm shadow-slate-300 hover:bg-slate-800 active:scale-95 transition disabled:opacity-70 flex items-center justify-center gap-2",
   outline:
