@@ -907,44 +907,58 @@ export default function Home() {
   const handleAuthSubmit = async (event: FormEvent) => {
     console.log("🚀 Botão clicado! Modo:", authState.mode);
     event.preventDefault();
-    if (!supabase) return;
-    console.log("🔌 Cliente Supabase:", !!supabase);
-
-    if (!isValidEmail(authState.email)) {
-      setAuthState((prev) => ({ ...prev, error: "E-mail inválido." }));
+    if (!supabase) {
+      console.error(
+        "❌ Erro: O cliente Supabase não foi iniciado. Verifique as chaves NEXT_PUBLIC."
+      );
+      setAuthState((prev) => ({
+        ...prev,
+        error: "Erro de conexão com o banco.",
+        isSubmitting: false,
+      }));
       return;
     }
-    if (!isValidPassword(authState.password)) {
-      setAuthState((prev) => ({ ...prev, error: "Senha curta (min 6)." }));
-      return;
-    }
+    console.log("🔌 Supabase carregado com sucesso!");
 
-    setAuthState((prev) => ({ ...prev, isSubmitting: true, error: null }));
-
-    if (authState.mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: authState.email,
-        password: authState.password,
-      });
-      if (error) {
-        setAuthState((prev) => ({
-          ...prev,
-          error: "Erro no login. Verifique os dados.",
-          isSubmitting: false,
-        }));
+    try {
+      if (!isValidEmail(authState.email)) {
+        setAuthState((prev) => ({ ...prev, error: "E-mail inválido." }));
+        return;
       }
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email: authState.email,
-        password: authState.password,
-      });
-      if (error) {
-        setAuthState((prev) => ({
-          ...prev,
-          error: "Erro no cadastro.",
-          isSubmitting: false,
-        }));
+      if (!isValidPassword(authState.password)) {
+        setAuthState((prev) => ({ ...prev, error: "Senha curta (min 6)." }));
+        return;
+      }
+
+      setAuthState((prev) => ({ ...prev, isSubmitting: true, error: null }));
+      console.log("📡 Enviando dados para o Supabase...");
+
+      if (authState.mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authState.email,
+          password: authState.password,
+        });
+        if (error) {
+          setAuthState((prev) => ({
+            ...prev,
+            error: "Erro no login. Verifique os dados.",
+            isSubmitting: false,
+          }));
+          return;
+        }
       } else {
+        const { error } = await supabase.auth.signUp({
+          email: authState.email,
+          password: authState.password,
+        });
+        if (error) {
+          setAuthState((prev) => ({
+            ...prev,
+            error: "Erro no cadastro.",
+            isSubmitting: false,
+          }));
+          return;
+        }
         setAuthState((prev) => ({
           ...prev,
           mode: "login",
@@ -952,9 +966,19 @@ export default function Home() {
           isSubmitting: false,
         }));
       }
+
+      // O useEffect de session vai lidar com o redirecionamento visual
+      if (!authState.error) {
+        setAuthState((prev) => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (e) {
+      console.error("🔥 Erro fatal:", e);
+      setAuthState((prev) => ({
+        ...prev,
+        error: "Erro inesperado. Tente novamente.",
+        isSubmitting: false,
+      }));
     }
-    // O useEffect de session vai lidar com o redirecionamento visual
-    if (!authState.error) setAuthState(prev => ({ ...prev, isSubmitting: false }));
   };
 
   const handleLogout = async () => {
