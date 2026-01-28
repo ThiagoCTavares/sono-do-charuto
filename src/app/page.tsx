@@ -1905,23 +1905,30 @@ export default function Home() {
                           </span>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        disabled={isSaving || isSleepLocked}
-                        variant="primary"
-                        onClick={sleepStatus === "SLEEPING" ? handleWakeUp : handleSleepStart}
-                        className={`mt-12 text-2xl font-bold tracking-wide ${
-                          sleepStatus === "SLEEPING"
-                            ? "!bg-[#fafafa] !text-black hover:!bg-[#f0f0f0]"
-                            : ""
-                        }`}
-                      >
-                        {sleepStatus === "SLEEPING"
-                          ? isSleepLocked
-                            ? "Durma bem!"
-                            : "Acordar"
-                          : "IR DORMIR"}
-                      </Button>
+                      <div className="flex flex-col gap-0.5">
+                        {sleepStatus === "SLEEPING" ? (
+                          <p className="text-sm text-slate-300 mb-3">
+                            Já acordou? Clique aqui e calcule suas horas de sono.
+                          </p>
+                        ) : null}
+                        <Button
+                          type="button"
+                          disabled={isSaving || isSleepLocked}
+                          variant="primary"
+                          onClick={sleepStatus === "SLEEPING" ? handleWakeUp : handleSleepStart}
+                          className={`text-2xl font-bold tracking-wide ${
+                            sleepStatus === "SLEEPING"
+                              ? "!bg-[#fafafa] !text-black hover:!bg-[#f0f0f0] mt-0"
+                              : "mt-12"
+                          }`}
+                        >
+                          {sleepStatus === "SLEEPING"
+                            ? isSleepLocked
+                              ? "Durma bem!"
+                              : "Acordar"
+                            : "IR DORMIR"}
+                        </Button>
+                      </div>
                     </div>
                   ) : null}
 
