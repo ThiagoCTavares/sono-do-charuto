@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Edit3, Home as HomeIcon, Trophy, UserCircle2, User, LogOut } from "lucide-react";
 import Button from "@/components/ui/Button";
 import type { Session } from "@supabase/supabase-js";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
 // --- TIPOS ---
@@ -515,19 +515,25 @@ const isValidPassword = (password: string) => password.length >= 6;
 
 // --- COMPONENTE PRINCIPAL ---
 export default function Home() {
-  const supabase = useMemo(() => {
-    return createClient<Database, "public", "public">(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
+  const supabase = useMemo<SupabaseClient<Database, "public", "public"> | null>(
+    () => {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!url || !key) {
+        return null;
+      }
+
+      return createClient<Database, "public", "public">(url, key, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
         },
-      },
-    );
-  }, []);
+      });
+    },
+    [],
+  );
   const [sleepStatus, setSleepStatus] = useState<"IDLE" | "SLEEPING" | "COMPLETED">(
     "IDLE"
   );
@@ -918,13 +924,15 @@ export default function Home() {
   const maskSecret = (value?: string) =>
     value ? `${value.slice(0, 4)}...${value.slice(-4)}` : "n/a";
 
-  console.log("🕵️ DEBUG DE CHAVES:");
-  console.log("- URL existe?", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log("- Key existe?", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  console.log(
-    "- Início da URL:",
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 10),
-  );
+  useEffect(() => {
+    console.log("🕵️ DEBUG DE CHAVES:");
+    console.log("- URL existe?", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("- Key existe?", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    console.log(
+      "- Início da URL:",
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 10),
+    );
+  }, []);
 
   // Login / Cadastro
   const handleAuthSubmit = async (event: FormEvent) => {
