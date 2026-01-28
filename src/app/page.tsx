@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Edit3, Home as HomeIcon, Trophy, UserCircle2, User, LogOut } from "lucide-react";
 import Button from "@/components/ui/Button";
 import type { Session } from "@supabase/supabase-js";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
 // --- TIPOS ---
@@ -515,7 +515,19 @@ const isValidPassword = (password: string) => password.length >= 6;
 
 // --- COMPONENTE PRINCIPAL ---
 export default function Home() {
-  const supabase = useMemo(() => getSupabaseClient(), []);
+  const supabase = useMemo(() => {
+    return createClient<Database, "public", "public">(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      },
+    );
+  }, []);
   const [sleepStatus, setSleepStatus] = useState<"IDLE" | "SLEEPING" | "COMPLETED">(
     "IDLE"
   );
@@ -903,6 +915,17 @@ export default function Home() {
     };
   }, [fetchLeaderboard, session, savedTick]);
 
+  const maskSecret = (value?: string) =>
+    value ? `${value.slice(0, 4)}...${value.slice(-4)}` : "n/a";
+
+  console.log("🕵️ DEBUG DE CHAVES:");
+  console.log("- URL existe?", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("- Key existe?", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  console.log(
+    "- Início da URL:",
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 10),
+  );
+
   // Login / Cadastro
   const handleAuthSubmit = async (event: FormEvent) => {
     console.log("🚀 Botão clicado! Modo:", authState.mode);
@@ -911,6 +934,10 @@ export default function Home() {
       console.error(
         "❌ Erro: O cliente Supabase não foi iniciado. Verifique as chaves NEXT_PUBLIC."
       );
+      console.log("🔒 Valores tentados:", {
+        url: maskSecret(process.env.NEXT_PUBLIC_SUPABASE_URL),
+        key: maskSecret(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+      });
       setAuthState((prev) => ({
         ...prev,
         error: "Erro de conexão com o banco.",
