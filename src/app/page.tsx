@@ -766,8 +766,8 @@ export default function Home() {
     const { data, error } = await supabase
       .from("registros_sono")
       .select("*, perfis!inner(nome, email, avatar_url)")
-      .order("duracao_total", { ascending: false })
-      .limit(10);
+      .order("data_registro", { ascending: false }) // Ordenar por data ajuda a debugar
+      .limit(1000); // Traz "tudo" para somarmos no front-end
 
     if (error) {
       console.error("Erro no ranking:", error);
