@@ -23,12 +23,8 @@ type SleepRecord = Database["public"]["Tables"]["registros_sono"]["Row"] & {
   perfis?: Database["public"]["Tables"]["perfis"]["Row"] | null;
 };
 
-type LeaderboardEntry = SleepRecord & {
-  totalPoints: number;
-  totalMinutes: number;
-  nights: number;
-  avgMinutes: number;
-};
+type LeaderboardEntry =
+  Database["public"]["Views"]["ranking_oficial"]["Row"];
 
 type AuthMode = "login" | "signup";
 
@@ -762,61 +758,16 @@ export default function Home() {
     }
 
     setLoadingLeaderboard(true);
-    // Usamos !inner para garantir que só traga quem tem perfil
     const { data, error } = await supabase
-      .from("registros_sono")
-      .select("*, perfis!inner(nome, email, avatar_url)")
-      .order("data_registro", { ascending: false }) // Ordenar por data ajuda a debugar
-      .limit(1000); // Traz "tudo" para somarmos no front-end
+      .from("ranking_oficial")
+      .select("*")
+      .order("total_pontos", { ascending: false });
 
     if (error) {
       console.error("Erro no ranking:", error);
       setLeaderboard([]);
     } else {
-      // Filtra duplicatas de usuário (mostra apenas o melhor sono de cada um)
-      // Opcional: Se quiser mostrar todas as noites, remova este bloco filter.
-      // Aqui estamos deixando passar tudo para o MVP.
-      const records = (data ?? []) as SleepRecord[];
-      const grouped = records.reduce<Record<string, LeaderboardEntry>>(
-        (acc, record) => {
-          const scoreResult = calculateSleepDuration(
-            record.hora_deitar,
-            record.hora_acordar,
-          );
-          const recordPoints = scoreResult?.score ?? 0;
-          const existing = acc[record.user_id];
-          if (existing) {
-            const totalMinutes = existing.totalMinutes + record.duracao_total;
-            const nights = existing.nights + 1;
-            acc[record.user_id] = {
-              ...existing,
-              duracao_total: existing.duracao_total + record.duracao_total,
-              totalMinutes,
-              nights,
-              avgMinutes: totalMinutes / nights,
-              totalPoints: existing.totalPoints + recordPoints,
-              perfis: record.perfis ?? existing.perfis,
-            };
-            return acc;
-          }
-
-          acc[record.user_id] = {
-            ...record,
-            totalPoints: recordPoints,
-            totalMinutes: record.duracao_total,
-            nights: 1,
-            avgMinutes: record.duracao_total,
-          };
-          return acc;
-        },
-        {},
-      );
-
-      const aggregate = Object.values(grouped).sort(
-        (a, b) => b.totalPoints - a.totalPoints,
-      );
-
-      setLeaderboard(aggregate);
+      setLeaderboard((data ?? []) as LeaderboardEntry[]);
     }
     setLoadingLeaderboard(false);
   }, [supabase]);
@@ -1166,6 +1117,7 @@ export default function Home() {
       .update({
         hora_acordar: normalizedNow,
         duracao_total: calc.totalMinutes,
+        pontos: calc.score,
       })
       .eq("id", recordId)
       .eq("user_id", session.user.id)
@@ -1216,6 +1168,7 @@ export default function Home() {
         hora_deitar: normalizedBedTime,
         hora_acordar: normalizedWakeTime,
         duracao_total: calc.totalMinutes,
+        pontos: calc.score,
       })
       .eq("id", activeSleepRecord.id);
 
@@ -1313,7 +1266,7 @@ export default function Home() {
               })}
             </span>
           </div>
-          {sleepStatus !== "SLEEPING" && session ? (
+          {session && sleepStatus !== "SLEEPING" ? (
             <button
               onClick={handleLogout}
               className="p-2 text-slate-400 hover:text-slate-600"
@@ -2056,18 +2009,17 @@ export default function Home() {
                         </div>
                       ) : (
                         leaderboard.map((record, index) => {
-                          // --- AJUSTE TÉCNICO CRÍTICO DO COBRA ---
-                          // Verifica se 'perfis' é array ou objeto para evitar erro
-                          const perfilData = Array.isArray(record.perfis) 
-                            ? record.perfis[0] 
-                            : record.perfis;
-                          
-                          const name = perfilData?.nome || perfilData?.email?.split('@')[0] || "Piloto Anônimo";
-                          const avatar = perfilData?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${record.user_id}`;
+                          const name =
+                            record.nome ||
+                            record.email?.split("@")[0] ||
+                            "Piloto Anônimo";
+                          const avatar =
+                            record.avatar_url ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${record.user_id}`;
 
                           return (
                             <motion.div
-                              key={record.id}
+                              key={record.user_id ?? index}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.1 }}
@@ -2091,10 +2043,10 @@ export default function Home() {
                               </div>
                           <div className="text-right">
                             <span className="text-sm font-bold text-slate-900">
-                              {Math.round(record.totalPoints)} pts
+                              {Math.round(record.total_pontos)} pts
                             </span>
                             <p className="text-xs text-slate-400">
-                              Total dormido · {formatDuration(record.totalMinutes)}
+                              Total dormido · {formatDuration(record.total_minutos)}
                             </p>
                           </div>
                         </motion.div>
